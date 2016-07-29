@@ -1,0 +1,278 @@
+Instruction "Manual" for Spot.cpp
+Written by Abigail L. Stevens, 2013; alsteven@ualberta.ca
+
+TABLE OF CONTENTS OF THIS FILE:
+1. The Basics: purpose, background, and getting started
+2. Contents of 'spot' Directory
+3. Help for Command Line Flags
+4. Details about Command Line Flags
+5. Known Limitations of the Code
+6. Warnings Written into the Code
+7. Comparing a Simulation with Data
+8. Modelling a Second Hot Spot
+9. Reading a Temperature Mesh from a File
+
+
+--IN PROGRESS--
+
+
+1. The Basics: purpose, background, and getting started
+
+This code models an X-ray light curve from a Type I X-ray burst on the surface of a neutron star, although it can be expanded to model persistent pulsations from accreting millisecond X-ray pulsars. The user inputs the parameters describing the neutron star and the emitting region (henceforth known as a hotspot), and the code outputs the light curve. These curves are comparable to what one would expect to see from an X-ray timing satellite.
+
+Useful references: 
+A. L. Stevens MSc thesis, U Alberta 2013.
+Morsink Leahy Cadeau and Braga 
+Poutanen and Gierlinski
+Early iterations of the code: 
+Cadeau et al 2007
+Cadeau et al 2005
+Leahy and Morsink 2010?
+
+The above references contain the equations used in the code.
+
+I've written a number of shell scripts to run the code. The simplest is "go.sh", found in
+the "spot" directory. The standard one I use, that allows for much more flexibility once the user is fairly comfortable with the code, is "var_none.sh". I originally called it this because all of my other shell scripts ran the code multiple times while varying one parameter and plotted all the resultant light curves on the same plot for comparison, while the "var_none" shell script didn't vary any parameters and just ran the code once and plotted the single light curve.
+
+
+
+
+2. Contents of 'spot' Directory
+
+FILES:
+go.sh -- Simple shell script for running/testing the program.
+Makefile -- Makefile to create the executable "spot" (Type "make" at the command line.)
+Spot.cpp -- Contains the "main" procedure. This is where execution starts.
+Chi.cpp -- Contains routines that are called in Spot.cpp like computation of chi^2, 
+           computing fluxes for light curve, calls to OblDeflectionTOA
+Units.cpp  & Units.h -- Definitions of units and fundamental constants used in the code.
+Struct.h -- Definitions of structures used in the program.
+OblDeflectionTOA.cpp & OblDeflectionTOA.h -- Contains routines that compute deflection 
+                                             angles, times of arrivals, etc.
+Exception.h -- Handles exceptions/errors in execution of Spot.cpp.
+OblModelBase, PolyOblModelBase, PolyModelCFLQS, PolyModelNHQS, SphericalOblModel files
+-- Sets up the geometric model of the neutron star. PolyModelNHQS is q option 1, 
+PolyModelCLFQS is q option 2, Spherical is q option 3.
+
+DIRECTORIES:
+input directory -- Location of input (data) files for comparing a model with data.
+output directory -- Location of spot output tables, gnuplot command files, and plots.
+mesh directory -- Location of some sample temperature meshes for large hotspots.
+
+ADDITIONAL SHELL SCRIPTS: 
+var_2spots -- Runs/plots Spot.cpp for north pole hotspot, south pole hotspot, and both.
+var_band -- Runs/plots Spot.cpp for different energy bands; easily changeable limits.
+var_emis -- Runs/plots Spot.cpp for fixing all other params and varying theta.
+var_gray -- Runs/plots Spot.cpp for fixed params but blackbody and graybody.
+var_incl -- Runs/plots Spot.cpp for fixing all other params and varying inclination.
+var_infile -- Runs/plots Spot.cpp and computes chi^2 with an input file.
+var_MR -- Runs/plots Spot.cpp for fixing all other params and varying radius.
+*var_none -- STANDARD ADVANCED SHELL SCRIPT FOR RUNNING/PLOTTING Spot.cpp.
+var_num -- Runs/plots Spot.cpp for different spot mesh fineness.
+var_rho -- Runs/plots Spot.cpp for fixing all other params and varying rho.
+var_spin -- Runs/plots Spot.cpp for fixing all other params and varying spin frequency.
+var_spotshapes -- Runs/plots Spot.cpp for different temperature meshes.
+var_temp -- Runs/plots Spot.cpp for fixing all other params and varying temperature.
+
+Things used in Ferret application/workflow: chi2contours directory, contours directory, 
+FerretData directory, FerretSetup.m, fitness.m, gridded directory, init.m, matpack files, 
+myPlot.m, outputFerret.m, param_degen directory, run_data directory, spotMex.cpp, 
+spotMex.mexmaci64
+
+
+
+
+3. Help for Command Line Flags
+
+The '-h' flag will bring up this:
+
+Spot help:  -flag Description. [default value]
+
+-a Anisotropy parameter. [0.586]
+-b Ratio of blackbody flux to comptonized flux. [1.0]
+-d Ignores time delays in output (see source). [0]
+-D Distance from earth to star, in meters. [~10kpc]
+-e * Latitudinal location of emission region, in degrees, between 0 and 90.
+-f * Spin frequency of star, in Hz.
+-g Graybody factor of beaming model: 0 = isotropic, 1 = Gray Atmosphere. [0]
+-i * Inclination of observer, in degrees, between 0 and 90.
+-I Input filename.
+-j Flag for computing only the second (antipodal) hot spot. [false]
+-l Time shift (or phase shift), in seconds.
+-m * Mass of star in Msun.
+-n Number of phase or time bins. [128]
+-N Flag for normalizing the flux. Using this sets it to true. [false]
+-o Output filename.
+-O Name of the output directory.
+-p Angular radius of spot, rho, in degrees. [0.0]
+-q * Model of star: [3]
+      1 for Neutron/Hybrid quark star poly model
+      2 for CFL quark star poly model
+      3 for spherical model
+-r * Radius of star (at the spot), in km.
+-s Spectral model of radiation: [0]
+      0 for bolometric light curve.
+      1 for blackbody in monochromatic energy bands (must include T option).
+-t Number of theta bins for large spots. Must be < 30. [1]
+-T Temperature of the spot, in keV. [2]
+-u Low energy band, lower limit, in keV. [2]
+-U Low energy band, upper limit, in keV. [3]
+-v High energy band, lower limit, in keV. [5]
+-V High energy band, upper limit, in keV. [6]
+-x Scattering radius, in kpc.
+-X Scattering intensity, units unspecified.
+-z Input file name for temperature mesh.
+-2 Flag for calculating two hot spots, on both magnetic poles. Using this sets it to true. [false]
+-3 File name header, for use with Ferret and param_degen.
+-8 Sets a flag to indicate that param_degen gave a negative solution.
+ Note: '*' next to description means required input parameter.
+
+
+Note: You will get an error for directory naming if you try to use decimals for numerical 
+values. I recommend using a variant on scientific notation, so 1.5 would be 15e-1
+
+
+
+4. Details About Command Line Flags
+
+Lower-case versus upper-case is important!!
+
+Spot help:  -flag Description. [default value]
+
+-a Anisotropy parameter. [0.586]
+	For complicated beaming patterns and shapes. Currently unused/deactivated. Use 
+	graybody instead, -g.
+-b Ratio of blackbody flux to comptonized flux. [1.0]
+	For inverse-Compton scattering off a hot accretion disk/corona. Currently unused/
+	deactivated.
+-d Ignores time delays in output (see source). [0]
+	Don't do this. Don't use the -d flag.
+	? Why does it say "see source"? What source?
+-e Latitudinal location of emission region, in degrees, between 0 and 90. 
+	Also known as theta.
+-f Rotation frequency (spin) of star, in Hz.
+	As measured by an observer at infinity.
+-g Graybody factor of beaming model: 0 = isotropic, 1 = Hopf Gray Atmosphere. [0]
+	Allows for non-isotropic beaming from hotspot -- photons are preferentially emitted
+	close to normal of surface, instead of close to tangent of surface.
+-i Inclination of observer, in degrees, between 0 and 90.
+   	We can now have i = e!
+-j Flag for computing only the second (antipodal) hot spot. [false]
+	Useful for debugging or for plots. Used in var_2spots.sh.
+-l Time shift (or phase shift), normalized to 1. Shifts the light curve along the x-axis.
+-m Mass of star in Msun.
+-n Number of phase or time bins. [128]
+	Equal to the number of flux points used in the light curve. The more you have, the
+	longer it takes to run, but the smoother the curve is. 128 is the default value, but
+	for simulated data we typically use 32.
+-N Flag for normalizing the flux. Using this sets it to true. [false]
+   	Using this is a good idea.
+-o Output filename.
+-O Name of the output directory.
+-p Angular radius of spot, rho, in degrees. [0.0]
+-q Model of star: [3]
+      1 for Neutron/Hybrid quark star poly model
+      2 for CFL quark star poly model (do not use)
+      3 for spherical model
+-r Radius of star (at the spot), in km.
+-s Spectral model of radiation: [0]
+      0 for bolometric light curve.
+      1 for blackbody in monochromatic energy bands (must include T option).
+-t Number of theta bins for large spots. Must be < 30. [1]
+	Makes the code run longer, since it computes the flux for each mesh bit.
+   	As long as the size of each mesh bin is <=6 degrees in radius, difference is 
+   	negligible.
+-T Temperature of the hotspot, in keV. [2]
+   	As measured in the NS rest frame. 2 keV seems to be standard in the literature.
+   	Note that the background temperature of the NS is 0 keV.
+-u Low energy band: lower limit, in keV. [2]
+   	For calculating the flux of a specific energy band.
+   	As measured by an observer at infinity.
+-U Low energy band: upper limit, in keV. [3]
+   	For calculating the flux of a specific energy band.
+   	As measured by an observer at infinity.
+-v High energy band: lower limit, in keV. [5]
+   	For calculating the flux of a specific energy band.
+   	As measured by an observer at infinity.
+-V High energy band: upper limit, in keV. [6]
+   	For calculating the flux of a specific energy band.
+   	As measured by an observer at infinity.
+-x Scattering radius, in kpc.
+	For a scattering cloud between us and the NS, this gives the distance (of? to?) the 
+	cloud. Currently unused/deactivated.
+-X Scattering intensity, units unspecified.
+	For a scattering cloud between us and the NS, this gives how much the cloud scatters 
+	the intensity. Currently unused/deactivated.
+-z Input file name for temperature mesh.
+	Usually begins with "mesh/", since temp meshes are stored in the mesh directory in 
+	spot, for simpler organization.
+-2 Flag for calculating two hot spots, on other magnetic pole. Using this sets it to true. [false]
+-3 File name header, for use with Ferret and param_degen.
+	Keeps files of the same run starting with the same name, for sorting and organization.
+-8 Sets a flag to indicate that param_degen gave a negative solution.
+	Only set in param_degen after Ferret, so that the parameter set is printed to a 
+	specific table. Pointless for non-Ferret, non-param_degen runs.
+
+
+
+5. Known Limitations of the Code
+
+Currently the code only handles square meshes over the hot spot, where there are the same 
+number of theta bins and phi bins.
+We have a wonky spherical trig work-around for non-trivially-sized spots that are 
+asymmetric over the rotation axis. 
+
+
+
+6. Warnings Written Into the Code
+
+Cannot have a negative temperature, spot radius, NS mass, NS radius, spin frequency.
+Must have number of spot mesh bins 0 < n < 30.
+Cannot have a non-trivially-sized spot mesh (n > 0) and a trivial rho (p = 0).
+Need to set upper and lower bounds to the energy band for flux calculation.
+Must have E_band_lower < E_band_upper (both in keV).
+
+
+7. Comparing a Simulation with Data
+
+The '-I' flag is used to compare
+
+
+
+8. Modelling a Second Hot Spot
+
+For modelling the light curve from two hotspots, the code computes the flux for each 
+phase bin of the first (north) hotspot, and then computes the flux for the second (south) 
+hotspot for each phase bin, and then sums the fluxes per phase bin. While in theory the 
+second hotspot would have the same inclination angle and a different emission angle (with 
+phase +180 degrees), we model it by keeping the same emission angle and changing the 
+inclination angle (with phase +180 degrees). This has the same net effect but with fewer 
+mathematical pitfalls.
+
+We currently assume that, for two hot spots, they have the same size and temperature 
+distribution, and they are 180 degrees across the NS from each other (mirrored emission 
+angles and directly opposite phases). Future versions of the code may allow for different 
+emission angles, rhos, and temperature distributions.
+
+To model the flux from just the second hotspot, include the -j flag in the command line. 
+This is used in the shell script var_2spots.sh.
+
+
+
+
+9. Reading a Temperature Mesh from a File
+
+Specify the mesh file with the -z flag in the command line. 
+File should probably be of type ".dat" or ".txt". Need to include the file type in the 
+name.
+This option is incompatible with and will overwrite the temperature and number of theta 
+bins. Thus, no need to include -T and -t values.
+Number of rows must be the same as the number of columns (square mesh).
+Values in the same line must be separated by a space.
+It doesn't matter if there is a space at the end of each line.
+Be sure to specify -p to give a nontrivial angular radius.
+Note that 0 is the background surface temperature of the NS.
+The temperature mesh allows you to change the "shape" of the spot!
+Examples can be seen in the "mesh" directory, or in the appendix of A. L. Stevens' MSc
+thesis, 2013.
+
